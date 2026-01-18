@@ -1,13 +1,13 @@
 // components/ToastHost.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import {JSX, useEffect, useMemo, useState} from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { toastManager } from "../core/toast-manager";
-import type { ToastInternal } from "../types";
-import { ToastItem } from "./ToastItem";
+import type { ToastInternal } from "../types.ts";
+import { ToastItem } from "./ToastItem.tsx";
 
-export const ToastHost: React.FC = () => {
+export function ToastHost(): JSX.Element {
     const insets = useSafeAreaInsets();
 
     const [toasts, setToasts] = useState<ReadonlyArray<ToastInternal>>([]);
@@ -16,24 +16,25 @@ export const ToastHost: React.FC = () => {
         return toastManager.subscribe(setToasts);
     }, []);
 
-    const topToasts: ReadonlyArray<ToastInternal> = useMemo(
-        () => toasts.filter((toast) => toast.options.position === "top"),
+    const topToasts = useMemo(
+        (): ReadonlyArray<ToastInternal> =>
+            toasts.filter(t => t.options.position === "top"),
         [toasts]
     );
 
-    const bottomToasts: ReadonlyArray<ToastInternal> = useMemo(
-        () => toasts.filter((toast) => toast.options.position === "bottom"),
+    const bottomToasts = useMemo(
+        (): ReadonlyArray<ToastInternal> =>
+            toasts.filter(t => t.options.position === "bottom"),
         [toasts]
     );
 
     return (
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-            {/* TOP STACK */}
             <View
                 pointerEvents="box-none"
                 style={[styles.stack, { top: insets.top + 12 }]}
             >
-                {topToasts.map((toast) => (
+                {topToasts.map(toast => (
                     <ToastItem
                         key={toast.id}
                         toast={toast}
@@ -42,12 +43,11 @@ export const ToastHost: React.FC = () => {
                 ))}
             </View>
 
-            {/* BOTTOM STACK */}
             <View
                 pointerEvents="box-none"
                 style={[styles.stack, { bottom: insets.bottom + 12 }]}
             >
-                {bottomToasts.map((toast) => (
+                {bottomToasts.map(toast => (
                     <ToastItem
                         key={toast.id}
                         toast={toast}
@@ -57,7 +57,7 @@ export const ToastHost: React.FC = () => {
             </View>
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     stack: {

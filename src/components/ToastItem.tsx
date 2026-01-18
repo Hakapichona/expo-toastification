@@ -1,23 +1,21 @@
 // components/ToastItem.tsx
-import React, { useEffect, useRef } from "react";
+import {JSX, useEffect, useRef} from "react";
 import { Animated, StyleSheet, Text } from "react-native";
 
-import type { ToastInternal } from "../types";
+import type { ToastInternal } from "../types.ts";
 
-type ToastItemProps = {
+export interface ToastItemProps {
     toast: ToastInternal;
     onHide: () => void;
-};
+}
 
-export const ToastItem: React.FC<ToastItemProps> = ({
-                                                        toast,
-                                                        onHide,
-                                                    }) => {
-    const opacity = useRef<Animated.Value>(new Animated.Value(0)).current;
-    const translateY = useRef<Animated.Value>(new Animated.Value(10)).current;
+export function ToastItem(props: ToastItemProps): JSX.Element {
+    const { toast, onHide } = props;
+
+    const opacity = useRef(new Animated.Value(0)).current;
+    const translateY = useRef(new Animated.Value(10)).current;
 
     useEffect((): (() => void) => {
-        // ENTER animation
         Animated.parallel([
             Animated.timing(opacity, {
                 toValue: 1,
@@ -31,8 +29,7 @@ export const ToastItem: React.FC<ToastItemProps> = ({
             }),
         ]).start();
 
-        const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
-            // EXIT animation
+        const timeout = setTimeout(() => {
             Animated.parallel([
                 Animated.timing(opacity, {
                     toValue: 0,
@@ -44,38 +41,26 @@ export const ToastItem: React.FC<ToastItemProps> = ({
                     duration: 160,
                     useNativeDriver: true,
                 }),
-            ]).start(({ finished }: { finished: boolean }) => {
-                if (finished) {
-                    onHide();
-                }
+            ]).start(({ finished }) => {
+                if (finished) onHide();
             });
         }, toast.options.duration);
 
-        return (): void => {
-            clearTimeout(timeout);
-        };
-    }, [
-        opacity,
-        translateY,
-        toast.options.duration,
-        onHide,
-    ]);
+        return () => clearTimeout(timeout);
+    }, [opacity, translateY, toast.options.duration, onHide]);
 
     return (
         <Animated.View
             style={[
                 styles.toast,
                 styles[toast.options.variant],
-                {
-                    opacity,
-                    transform: [{ translateY }],
-                },
+                { opacity, transform: [{ translateY }] },
             ]}
         >
             <Text style={styles.text}>{toast.message}</Text>
         </Animated.View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     toast: {
@@ -89,19 +74,9 @@ const styles = StyleSheet.create({
         color: "#fff",
         textAlign: "center",
     },
-    default: {
-        backgroundColor: "#333",
-    },
-    success: {
-        backgroundColor: "#22c55e",
-    },
-    error: {
-        backgroundColor: "#ef4444",
-    },
-    info: {
-        backgroundColor: "#3b82f6",
-    },
-    warning: {
-        backgroundColor: "#f59e0b",
-    },
+    default: { backgroundColor: "#333" },
+    success: { backgroundColor: "#22c55e" },
+    error: { backgroundColor: "#ef4444" },
+    info: { backgroundColor: "#3b82f6" },
+    warning: { backgroundColor: "#f59e0b" },
 });

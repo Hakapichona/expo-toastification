@@ -1,10 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2019",
-    "module": "ESNext",
+    "module": "NodeNext",
+    "lib": ["ES2019"],
     "jsx": "react-jsx",
-    "strict": true,
     "declaration": true,
-    "skipLibCheck": true
-  }
+    "strict": true,
+    "moduleResolution": "NodeNext",
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowImportingTsExtensions": true,
+    "noImplicitAny": true,
+  },
+  "include": ["src"]
 }
