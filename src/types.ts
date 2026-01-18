@@ -6,6 +6,14 @@ export interface ToastOptions {
     variant?: ToastVariant;
     duration?: number;
     position?: ToastPosition;
+
+    /** Visual */
+    fontSize?: number;
+    textColor?: string;
+
+    /** Animation */
+    enterDuration?: number;
+    exitDuration?: number;
 }
 
 /** Opciones internas ya normalizadas */
@@ -13,6 +21,12 @@ export interface ToastResolvedOptions {
     readonly variant: ToastVariant;
     readonly duration: number;
     readonly position: ToastPosition;
+
+    readonly fontSize: number;
+    readonly textColor: string;
+
+    readonly enterDuration: number;
+    readonly exitDuration: number;
 }
 
 /** Entidad interna del sistema */

@@ -4,7 +4,7 @@ A simple, elegant and lightweight toast notification library for **Expo** and **
 
 Inspired by the developer experience of `vue-toastification`, built with **modern React Native and TypeScript best practices**.
 
-# Requirements
+# 🔧 Requirements
 
 - Expo SDK >= 49
 - React >= 18
@@ -14,17 +14,43 @@ Inspired by the developer experience of `vue-toastification`, built with **moder
 - react-native-safe-area-context
 
 # 📦 Installation
-- pnpm add expo-toastification.
+- pnpm add expo-toastification
 
 - npm install expo-toastification
 
 - yarn add expo-toastification
 
-# 🚀 Quick Start
+# 🚀 Basic Setup (Minimum)
 
-### Wrap your app
+### 1- Expo Router 
 ```
-import { ToastProvider } from "expo-toastification";
+import { ToastProvider, configureToasts } from "expo-toastification";
+import { Slot } from "expo-router";
+
+configureToasts({
+  fontSize: 16,
+  textColor: "#0f172a",
+  enterDuration: 400,
+  exitDuration: 300,
+});
+
+export default function RootLayout() {
+  return (
+    <ToastProvider>
+      <Slot />
+    </ToastProvider>
+  );
+}
+```
+
+### 2- Classic Expo / React Native 
+```
+import { ToastProvider, configureToasts } from "expo-toastification";
+
+configureToasts({
+  fontSize: 15,
+  textColor: "#111",
+});
 
 export default function App() {
   return (
@@ -34,7 +60,34 @@ export default function App() {
   );
 }
 ```
-### Trigger toasts anywhere
+
+# 🧩 Per-Toast Customization
+
+Every toast can override global settings.
+
+```
+toast("Custom toast", {
+  duration: 5000,
+  fontSize: 18,
+  textColor: "#facc15",
+});
+```
+
+# ⚙️ Full Toast Options
+
+```
+toast("Example", {
+  variant: "success",
+  position: "top",
+  duration: 4000,
+  fontSize: 16,
+  textColor: "#ffffff",
+  enterDuration: 400,
+  exitDuration: 300,
+});
+```
+
+# 🍞 Toasts
 ```
 import { toast } from "expo-toastification";
 
@@ -46,29 +99,6 @@ toast.info("New update available");
 toast.warning("Be careful!");
 
 ```
-
-# ⚙️ Configuration
-Configure maximum visible toasts
-
-By default, 3 toasts can be visible at the same time. Extra toasts are queued using FIFO order.
-
-```
-import { configureToasts } from "expo-toastification";
-
-configureToasts({
-  maxToasts: 4,
-});
-```
-
-# 🧩 Toast Options
-```
-toast("Custom toast", {
-  duration: 5000,
-  position: "bottom",
-  variant: "info",
-});
-```
-
 
 # 🛣 Roadmap
 

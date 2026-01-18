@@ -1,6 +1,6 @@
 {
   "name": "expo-toastification",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "Simple toast notifications for Expo & React Native",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

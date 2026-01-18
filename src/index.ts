@@ -1,6 +1,4 @@
-import {toastManager} from "./core/toast-manager";
 export { toast } from "./api/toast";
+export { configureToasts } from "./api/configure";
+export { ToastProvider } from "./components/ToastProvider";
 export * from "./types";
-export { ToastProvider } from "./components/ToastProvider"
-
-toastManager.configure({ maxToasts: 4 });
