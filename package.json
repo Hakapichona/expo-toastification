@@ -1,20 +1,31 @@
 {
   "name": "expo-toastification",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Simple toast notifications for Expo & React Native",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --dts --format esm,cjs",
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
+    "expo": "*",
     "react": "*",
     "react-native": "*",
-    "expo": "*",
     "react-native-safe-area-context": "*"
   },
-  "keywords": ["expo", "toast", "react-native", "notification"],
-  "license": "MIT"
+  "keywords": [
+    "expo",
+    "toast",
+    "react-native",
+    "notification"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
 }
