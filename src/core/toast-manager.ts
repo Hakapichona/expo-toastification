@@ -1,6 +1,7 @@
 // core/toast-manager.ts
 import { ToastInternal, ToastOptions } from "../types";
 import { normalizeOptions } from "./normalize-options";
+import { v4 as uuidv4 } from "uuid";
 
 type Subscriber = (toasts: ReadonlyArray<ToastInternal>) => void;
 
@@ -12,23 +13,15 @@ class ToastManager {
 
     private maxToasts: number = 3;
 
-    /* =======================
-       Subscription
-    ======================= */
-
     subscribe(fn: Subscriber): () => void {
         this.subscribers.add(fn);
         fn(this.active);
         return () => this.subscribers.delete(fn);
     }
 
-    /* =======================
-       Public API
-    ======================= */
-
     publish(message: string, options?: ToastOptions): void {
         const toast: ToastInternal = {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             message,
             options: normalizeOptions(options),
         };
@@ -51,10 +44,6 @@ class ToastManager {
             this.flush();
         }
     }
-
-    /* =======================
-       Internal mechanics
-    ======================= */
 
     private flush(): void {
         const availableSlots: number =

@@ -4,6 +4,15 @@ A simple, elegant and lightweight toast notification library for **Expo** and **
 
 Inspired by the developer experience of `vue-toastification`, built with **modern React Native and TypeScript best practices**.
 
+# Requirements
+
+- Expo SDK >= 49
+- React >= 18
+- React Native >= 0.71
+- uuid >= 8.3.2
+- react-native-get-random-values
+- react-native-safe-area-context
+
 # 📦 Installation
 - pnpm add expo-toastification.
 
