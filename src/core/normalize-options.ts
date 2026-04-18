@@ -1,43 +1,59 @@
+// core/normalize-options.ts
 import type {
     ToastOptions,
     ToastResolvedOptions,
+    ToastTextStyle,
+    ToastVariant,
 } from "../types";
+import { VARIANT_THEMES } from "../theme/variants";
 import { toastGlobalConfig } from "./configuration";
 
-const DEFAULTS: ToastResolvedOptions = {
-    variant: "default",
-    position: "top",
-    duration: 3000,
-
-    fontSize: 14,
-    textColor: "#ffffff",
-
-    enterDuration: 250,
-    exitDuration: 200,
-};
+function mergeTextStyles(
+    ...styles: ReadonlyArray<ToastTextStyle | undefined>
+): ToastTextStyle {
+    const merged: ToastTextStyle = {};
+    for (const style of styles) {
+        if (style != null) {
+            Object.assign(merged, style);
+        }
+    }
+    return merged;
+}
 
 export function normalizeOptions(
     options?: ToastOptions
 ): ToastResolvedOptions {
+    const variant: ToastVariant = options?.variant ?? "default";
+    const theme = VARIANT_THEMES[variant];
+
+    const description = options?.description?.trim();
+
     return {
-        variant: options?.variant ?? DEFAULTS.variant,
-        position: options?.position ?? DEFAULTS.position,
-        duration: options?.duration ?? DEFAULTS.duration,
+        variant,
+        position: options?.position ?? toastGlobalConfig.position,
+        duration: options?.duration ?? toastGlobalConfig.duration,
 
-        fontSize:
-            options?.fontSize ??
-            toastGlobalConfig.fontSize,
+        description: description != null && description.length > 0 ? description : null,
+        icon: options?.icon ?? null,
+        noIcon: options?.noIcon ?? false,
 
-        textColor:
-            options?.textColor ??
-            toastGlobalConfig.textColor,
+        titleStyle: mergeTextStyles(
+            theme.titleStyle,
+            toastGlobalConfig.titleStyle,
+            options?.titleStyle
+        ),
+        descriptionStyle: mergeTextStyles(
+            theme.descriptionStyle,
+            toastGlobalConfig.descriptionStyle,
+            options?.descriptionStyle
+        ),
 
-        enterDuration:
-            options?.enterDuration ??
-            toastGlobalConfig.enterDuration,
+        backgroundColor:
+            options?.backgroundColor ??
+            toastGlobalConfig.backgroundColor ??
+            theme.backgroundColor,
 
-        exitDuration:
-            options?.exitDuration ??
-            toastGlobalConfig.exitDuration,
+        enterDuration: options?.enterDuration ?? toastGlobalConfig.enterDuration,
+        exitDuration: options?.exitDuration ?? toastGlobalConfig.exitDuration,
     };
 }
