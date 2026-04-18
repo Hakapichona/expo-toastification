@@ -1,14 +1,36 @@
 // core/configuration.ts
-import type { ToastResolvedOptions } from "../types";
+import type { ToastPosition, ToastTextStyle } from "../types";
 
-export type ToastGlobalConfig = Omit<
-    ToastResolvedOptions,
-    "variant" | "position" | "duration"
->;
+/**
+ * Global defaults applied to every toast.
+ * These sit between built-in variant defaults (lowest priority)
+ * and per-toast options (highest priority).
+ */
+export interface ToastGlobalConfig {
+    duration: number;
+    position: ToastPosition;
+
+    enterDuration: number;
+    exitDuration: number;
+
+    /** Overrides applied on top of the variant theme's title style. */
+    titleStyle: ToastTextStyle;
+    /** Overrides applied on top of the variant theme's description style. */
+    descriptionStyle: ToastTextStyle;
+
+    /** If set, overrides the variant theme background color. */
+    backgroundColor: string | null;
+}
 
 export const toastGlobalConfig: ToastGlobalConfig = {
-    fontSize: 14,
-    textColor: "#ffffff",
+    duration: 3000,
+    position: "top",
+
     enterDuration: 250,
     exitDuration: 200,
+
+    titleStyle: {},
+    descriptionStyle: {},
+
+    backgroundColor: null,
 };

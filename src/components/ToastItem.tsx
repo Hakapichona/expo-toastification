@@ -1,13 +1,17 @@
 // components/ToastItem.tsx
 import { useEffect, useRef } from "react";
+import type { JSX } from "react";
 import {
     Animated,
+    Dimensions,
     StyleSheet,
     Text,
-    Dimensions,
+    View,
 } from "react-native";
 
 import type { ToastInternal } from "../types";
+import { VARIANT_THEMES } from "../theme/variants";
+import { getDefaultIconForVariant } from "./icons/DefaultIcons";
 
 export interface ToastItemProps {
     toast: ToastInternal;
@@ -16,21 +20,14 @@ export interface ToastItemProps {
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export function ToastItem(props: ToastItemProps) {
+export function ToastItem(props: ToastItemProps): JSX.Element {
     const { toast, onHide } = props;
     const { options } = toast;
 
-    // Start outside the screen (right)
-    const translateX = useRef(
-        new Animated.Value(SCREEN_WIDTH)
-    ).current;
-
-    const opacity = useRef(
-        new Animated.Value(0)
-    ).current;
+    const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // ENTER: slide from right to center
         Animated.parallel([
             Animated.timing(translateX, {
                 toValue: 0,
@@ -45,7 +42,6 @@ export function ToastItem(props: ToastItemProps) {
         ]).start();
 
         const timeout = setTimeout(() => {
-            // EXIT: slide back to right
             Animated.parallel([
                 Animated.timing(translateX, {
                     toValue: SCREEN_WIDTH,
@@ -76,57 +72,68 @@ export function ToastItem(props: ToastItemProps) {
         onHide,
     ]);
 
+    const theme = VARIANT_THEMES[options.variant];
+
+    const iconNode = options.noIcon
+        ? null
+        : (options.icon ?? getDefaultIconForVariant(options.variant, theme.iconColor));
+
+    const hasDescription = options.description != null && options.description.length > 0;
+
     return (
         <Animated.View
             style={[
                 styles.toast,
-                styles[options.variant],
+                { backgroundColor: options.backgroundColor },
                 {
                     opacity,
                     transform: [{ translateX }],
                 },
             ]}
         >
-            <Text
-                style={[
-                    styles.text,
-                    {
-                        fontSize: options.fontSize,
-                        color: options.textColor,
-                    },
-                ]}
-            >
-                {toast.message}
-            </Text>
+            {iconNode != null && (
+                <View style={styles.iconContainer}>{iconNode}</View>
+            )}
+
+            <View style={styles.textContainer}>
+                <Text style={[styles.title, options.titleStyle]}>
+                    {toast.title}
+                </Text>
+
+                {hasDescription && (
+                    <Text style={[styles.description, options.descriptionStyle]}>
+                        {options.description}
+                    </Text>
+                )}
+            </View>
         </Animated.View>
     );
 }
 
 const styles = StyleSheet.create({
     toast: {
-        paddingHorizontal: 16,
+        flexDirection: "row",
+        alignItems: "flex-start",
+        paddingHorizontal: 14,
         paddingVertical: 12,
         borderRadius: 10,
         marginBottom: 8,
-        minWidth: "70%",
+        minWidth: "80%",
+        maxWidth: "92%",
     },
-    text: {
-        textAlign: "center",
-        fontWeight: "500",
+    iconContainer: {
+        marginRight: 10,
+        marginTop: 1,
     },
-    default: {
-        backgroundColor: "#333",
+    textContainer: {
+        flex: 1,
+        flexShrink: 1,
     },
-    success: {
-        backgroundColor: "#22c55e",
+    title: {
+        textAlign: "left",
     },
-    error: {
-        backgroundColor: "#ef4444",
-    },
-    info: {
-        backgroundColor: "#3b82f6",
-    },
-    warning: {
-        backgroundColor: "#f59e0b",
+    description: {
+        marginTop: 2,
+        textAlign: "left",
     },
 });
