@@ -1,5 +1,6 @@
-// theme/variants.ts
 import type { ToastTextStyle, ToastVariant } from "../types";
+
+export type ToastResolvedScheme = "light" | "dark";
 
 export interface ToastVariantTheme {
     readonly backgroundColor: string;
@@ -18,7 +19,7 @@ const DESCRIPTION_BASE = {
     fontWeight: "400" as const,
 };
 
-export const VARIANT_THEMES: Readonly<Record<ToastVariant, ToastVariantTheme>> = {
+const LIGHT: Readonly<Record<ToastVariant, ToastVariantTheme>> = {
     default: {
         backgroundColor: "#EDEEF0",
         iconColor: "#3C4250",
@@ -49,4 +50,44 @@ export const VARIANT_THEMES: Readonly<Record<ToastVariant, ToastVariantTheme>> =
         titleStyle: { ...TITLE_BASE, color: "#6B3F07" },
         descriptionStyle: { ...DESCRIPTION_BASE, color: "#8A5410" },
     },
+};
+
+const DARK: Readonly<Record<ToastVariant, ToastVariantTheme>> = {
+    default: {
+        backgroundColor: "#1F2228",
+        iconColor: "#9CA3AF",
+        titleStyle: { ...TITLE_BASE, color: "#E5E7EB" },
+        descriptionStyle: { ...DESCRIPTION_BASE, color: "#9CA3AF" },
+    },
+    success: {
+        backgroundColor: "#14301F",
+        iconColor: "#70D15C",
+        titleStyle: { ...TITLE_BASE, color: "#B9F0B0" },
+        descriptionStyle: { ...DESCRIPTION_BASE, color: "#8BDB79" },
+    },
+    error: {
+        backgroundColor: "#3A1717",
+        iconColor: "#FF4A47",
+        titleStyle: { ...TITLE_BASE, color: "#F5B0B0" },
+        descriptionStyle: { ...DESCRIPTION_BASE, color: "#E58484" },
+    },
+    info: {
+        backgroundColor: "#221540",
+        iconColor: "#8B6EFF",
+        titleStyle: { ...TITLE_BASE, color: "#C7B6F5" },
+        descriptionStyle: { ...DESCRIPTION_BASE, color: "#9E85E6" },
+    },
+    warning: {
+        backgroundColor: "#3A2A0E",
+        iconColor: "#F59E0B",
+        titleStyle: { ...TITLE_BASE, color: "#F7D58E" },
+        descriptionStyle: { ...DESCRIPTION_BASE, color: "#E0B86C" },
+    },
+};
+
+export const VARIANT_THEMES: Readonly<
+    Record<ToastResolvedScheme, Readonly<Record<ToastVariant, ToastVariantTheme>>>
+> = {
+    light: LIGHT,
+    dark: DARK,
 };

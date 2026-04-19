@@ -1,6 +1,6 @@
 {
   "name": "expo-toastification",
-  "version": "2.0.1",
+  "version": "3.0.8",
   "description": "Simple toast notifications for Expo & React Native",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,10 +15,8 @@
     "expo": "*",
     "react": "*",
     "react-native": "*",
-    "react-native-get-random-values": "*",
     "react-native-safe-area-context": "*",
-    "react-native-svg": "*",
-    "uuid": "*"
+    "react-native-svg": "*"
   },
   "keywords": [
     "expo",
