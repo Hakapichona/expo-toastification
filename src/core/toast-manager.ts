@@ -1,13 +1,18 @@
-// core/toast-manager.ts
-import { v4 as uuidv4 } from "uuid";
-
-import type { ToastInternal, ToastOptions } from "../types";
-import { normalizeOptions } from "./normalize-options";
+import type { ToastDismissReason, ToastInternal, ToastOptions } from "../types";
+import { createToastId } from "./id";
+import { applyResolvedUpdates, normalizeOptions } from "./normalize-options";
+import { isNonEmptyString, resolvePositiveNumber, warn } from "./validation";
 
 type Subscriber = (toasts: ReadonlyArray<ToastInternal>) => void;
+type ExitHandler = (reason: ToastDismissReason) => void;
+
+export interface ToastUpdatePayload extends ToastOptions {
+    title?: string;
+}
 
 class ToastManager {
     private readonly subscribers: Set<Subscriber> = new Set();
+    private readonly exitHandlers: Map<string, ExitHandler> = new Map();
 
     private queue: ToastInternal[] = [];
     private active: ToastInternal[] = [];
@@ -23,9 +28,14 @@ class ToastManager {
     }
 
     publish(title: string, options?: ToastOptions): string {
+        if (!isNonEmptyString(title)) {
+            warn(`toast() called with an empty or non-string title; skipped.`);
+            return "";
+        }
+
         const toast: ToastInternal = {
-            id: uuidv4(),
-            title,
+            id: createToastId(),
+            title: title.trim(),
             options: normalizeOptions(options),
         };
 
@@ -35,16 +45,71 @@ class ToastManager {
         return toast.id;
     }
 
-    remove(id: string): void {
+    dismiss(id: string, reason: ToastDismissReason = "programmatic"): void {
+        const handler = this.exitHandlers.get(id);
+        if (handler) {
+            handler(reason);
+        } else {
+            this.detach(id);
+        }
+    }
+
+    registerExit(id: string, handler: ExitHandler): () => void {
+        this.exitHandlers.set(id, handler);
+        return () => {
+            this.exitHandlers.delete(id);
+        };
+    }
+
+    detach(id: string): void {
         this.active = this.active.filter((t) => t.id !== id);
         this.queue = this.queue.filter((t) => t.id !== id);
+        this.exitHandlers.delete(id);
         this.flush();
         this.notify();
     }
 
+    update(id: string, updates: ToastUpdatePayload): boolean {
+        const transform = (existing: ToastInternal): ToastInternal => {
+            const { title: newTitle, ...optionUpdates } = updates;
+
+            const resolvedTitle =
+                newTitle !== undefined && isNonEmptyString(newTitle)
+                    ? newTitle.trim()
+                    : existing.title;
+
+            return {
+                id: existing.id,
+                title: resolvedTitle,
+                options: applyResolvedUpdates(existing.options, optionUpdates),
+            };
+        };
+
+        const activeIdx = this.active.findIndex((t) => t.id === id);
+        if (activeIdx >= 0) {
+            const next = [...this.active];
+            next[activeIdx] = transform(next[activeIdx]);
+            this.active = next;
+            this.notify();
+            return true;
+        }
+
+        const queueIdx = this.queue.findIndex((t) => t.id === id);
+        if (queueIdx >= 0) {
+            this.queue[queueIdx] = transform(this.queue[queueIdx]);
+            return true;
+        }
+
+        return false;
+    }
+
     configure(config: { maxToasts?: number }): void {
-        if (typeof config.maxToasts === "number" && config.maxToasts > 0) {
-            this.maxToasts = config.maxToasts;
+        if (config.maxToasts !== undefined) {
+            this.maxToasts = resolvePositiveNumber(
+                config.maxToasts,
+                this.maxToasts,
+                "maxToasts"
+            );
             this.flush();
         }
     }

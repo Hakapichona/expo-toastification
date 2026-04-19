@@ -6,13 +6,17 @@
 
 A simple, elegant and lightweight toast notification library for **Expo** and **React Native**, built with a modern TypeScript API.
 
-- 🎨 Pastel palette + SVG icons per variant (success / error / info / warning)
+- 🎨 Pastel palette + SVG icons per variant (`success` / `error` / `info` / `warning`)
+- 🌗 Reactive light / dark mode (follows `useColorScheme()` or force manually)
 - 🧩 Title + optional description with independently styleable text
-- 🖼️ Custom icons (any `ReactNode`) or `noIcon`
-- ⚙️ Global defaults + per-toast overrides (deep-merged)
-- 📚 Queue with configurable `maxToasts`
-- ↩️ Programmatic `dismiss(id)` — every call returns an id
-- 🪶 ~4 KB gzipped, zero runtime dependencies beyond peer deps
+- 🖼️ Custom icons (any `ReactNode`), `noIcon`, or translucent background
+- 👆 Tap-to-dismiss, swipe-to-dismiss + lifecycle callbacks (`onShow` / `onPress` / `onDismiss`)
+- 🔄 `toast.update(id, ...)`, `toast.promise(p, ...)` and `toast.dismiss(id)` — animated exit included
+- 🪟 Named scopes via `<ToastProvider scope="modal" />` — isolate toasts per surface
+- 🧰 Full custom renderer (`render: (ctx) => ReactNode`) with built-in gestures preserved
+- ⚙️ Global defaults + per-toast overrides, deep-merged by field
+- 🪶 **~7 KB gzipped**, zero runtime deps, **no native code of its own**
+- 📱 Works on **iOS, Android, Expo Go and EAS Build** out of the box
 - ✅ 100 % TypeScript, fully typed public API
 
 > Inspired by the DX of `vue-toastification`, rebuilt from scratch for React Native.
@@ -34,23 +38,20 @@ yarn add expo-toastification
 Then install the peer dependencies (skip the ones you already have):
 
 ```bash
-npx expo install react-native-safe-area-context react-native-svg react-native-get-random-values
-pnpm add uuid
+npx expo install react-native-safe-area-context react-native-svg
 ```
-
-> 💡 `react-native-get-random-values` must be imported **once** at the top of your app entry (see setup below) so `uuid` works on native.
 
 ### Requirements
 
-| Dep                              | Version       |
-| -------------------------------- | ------------- |
-| Expo SDK                         | ≥ 49          |
-| React                            | ≥ 18          |
-| React Native                     | ≥ 0.71        |
-| `uuid`                           | ≥ 8.3.2       |
-| `react-native-get-random-values` | any           |
-| `react-native-safe-area-context` | any           |
-| `react-native-svg`               | any           |
+| Dep                              | Minimum version |
+| -------------------------------- | --------------- |
+| Expo SDK                         | ≥ 49            |
+| React                            | ≥ 18            |
+| React Native                     | ≥ 0.71          |
+| `react-native-safe-area-context` | any             |
+| `react-native-svg`               | any             |
+| iOS                              | 13.0            |
+| Android                          | 6.0 (API 23)    |
 
 ---
 
@@ -62,8 +63,6 @@ Wrap your app with `<ToastProvider>` and (optionally) set global defaults with `
 
 ```tsx
 // app/_layout.tsx
-import "react-native-get-random-values";
-
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Slot } from "expo-router";
 import { ToastProvider, configureToasts } from "expo-toastification";
@@ -89,8 +88,6 @@ export default function RootLayout() {
 
 ```tsx
 // App.tsx
-import "react-native-get-random-values";
-
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ToastProvider } from "expo-toastification";
 
@@ -125,7 +122,10 @@ toast.success("Saved successfully");
 | `toast.info(title, options?)`    | `string`  | Purple variant with check icon.                                 |
 | `toast.warning(title, options?)` | `string`  | Amber variant with `!` icon.                                    |
 | `toast.custom(title, options)`   | `string`  | `options` is **required** — signals explicit customization.     |
-| `toast.dismiss(id)`              | `void`    | Dismisses a toast by id.                                        |
+| `toast.dismiss(id)`              | `void`    | Animated dismiss of a toast by id.                              |
+| `toast.update(id, updates)`      | `boolean` | Partially updates an existing toast. `true` if found.           |
+| `toast.promise(p, messages)`     | `Promise` | Shows loading → success/error when the promise settles.         |
+| `toast.scope(name)`              | `ScopedToast` | Returns a scoped toast helper (`toast.scope("modal").success(...)`). |
 | `configureToasts(config)`        | `void`    | Sets global defaults (deep-merged over variant theme).          |
 
 > ⚠️ **Every toast creator returns the toast id** (`string`) — `toast(...)`, `toast.success`, `toast.error`, `toast.info`, `toast.warning` and `toast.custom`. Capture it if you want to dismiss the toast programmatically via `toast.dismiss(id)`.
@@ -200,14 +200,27 @@ toast("Love you", {
 toast.error("Something went wrong. Try again.", { noIcon: true });
 ```
 
-### 6. Position / duration overrides
+### 6. Translucent background
+
+```tsx
+// Uses the variant theme color at 75% alpha.
+toast.info("Subtle notice", { transparent: true });
+
+// Custom hue, still translucent.
+toast("Floating", {
+  transparent: true,
+  backgroundColor: "#0F172A",
+});
+```
+
+### 7. Position / duration overrides
 
 ```tsx
 toast.info("I'm at the bottom", { position: "bottom" });
 toast.warning("A longer-lasting toast", { duration: 8000 });
 ```
 
-### 7. Programmatic dismiss
+### 8. Programmatic dismiss
 
 `toast()` and its variants return the id of the created toast.
 
@@ -219,7 +232,103 @@ toast.dismiss(id);
 toast.success("Synced");
 ```
 
-### 8. `toast.custom` — options required
+### 9. Partial update
+
+```tsx
+const id = toast("Uploading…", { duration: 0 }); // 0 = never auto-dismiss
+
+onProgress(50);
+toast.update(id, { description: "50%" });
+
+onProgress(100);
+toast.update(id, {
+  title: "Done",
+  description: "Upload complete",
+  variant: "success",
+  duration: 3000,
+});
+```
+
+### 10. Promise helper
+
+Shows a loading toast immediately, swaps it to success / error when the promise settles.
+
+```tsx
+await toast.promise(
+  fetch("/api/save").then((r) => r.json()),
+  {
+    loading: "Saving…",
+    success: (data) => `Saved item #${data.id}`,
+    error: (err) => ({
+      title: "Couldn't save",
+      description: (err as Error).message,
+    }),
+  }
+);
+```
+
+`toast.promise` returns the **original** promise — use it with `await` or `.then` as you would without the toast.
+
+### 11. Interaction (tap, swipe, callbacks)
+
+Every toast is tap-to-dismiss and swipe-to-dismiss by default. All three lifecycle callbacks are optional:
+
+```tsx
+toast.success("Uploaded", {
+  description: "Tap to view details.",
+  onShow: () => console.log("toast visible"),
+  onPress: () => router.push("/upload/12"),  // fires on tap
+  onDismiss: (reason) => console.log("dismissed:", reason), // "timeout" | "user" | "programmatic"
+});
+
+// Disable interaction (auto-dismiss still works):
+toast("Persistent notice", { dismissible: false });
+```
+
+Swipe horizontally past `swipeThreshold` (default 80px) to dismiss. Configure globally:
+
+```tsx
+configureToasts({ dismissible: true, swipeThreshold: 120 });
+```
+
+### 12. Custom renderer
+
+Pass a `render` function to replace the built-in layout entirely. The library still handles positioning, animation, tap and swipe.
+
+```tsx
+toast("Upload complete", {
+  render: ({ toast, dismiss }) => (
+    <View style={{ flexDirection: "row", padding: 16, backgroundColor: "#0F172A", borderRadius: 12 }}>
+      <Text style={{ color: "#F8FAFC", flex: 1 }}>{toast.title}</Text>
+      <Pressable onPress={dismiss}>
+        <Text style={{ color: "#60A5FA" }}>Dismiss</Text>
+      </Pressable>
+    </View>
+  ),
+});
+```
+
+### 13. Scopes (multiple hosts)
+
+Isolate toasts to a specific surface (e.g. inside a modal) with named scopes:
+
+```tsx
+// App root
+<ToastProvider>{/* default scope */}</ToastProvider>
+
+// Modal
+<ToastProvider scope="modal">
+  <MyModalContent />
+</ToastProvider>
+
+// Publish into the modal scope
+toast.scope("modal").success("Saved inside the modal");
+
+// Or explicitly per call:
+toast.success("...", { scope: "modal" });
+```
+
+### 14. `toast.custom` — options required
 
 Same semantics as `toast(...)` but `options` is mandatory. Every field inside remains optional. Useful when you want a forgotten options object to surface as a TypeScript error rather than a silent fallback to defaults.
 
@@ -255,6 +364,16 @@ Every field on `ToastOptions` is optional unless noted.
 | `backgroundColor`  | `string`                                  | variant background              | Hex / rgba / any RN-valid color.                                            |
 | `enterDuration`    | `number` (ms)                             | `250`                           | Enter animation duration.                                                   |
 | `exitDuration`     | `number` (ms)                             | `200`                           | Exit animation duration.                                                    |
+| `accessibilityLabel` | `string`                                | auto from title + description   | Overrides the announcement sent to screen readers.                          |
+| `transparent`      | `boolean`                                 | `false`                         | Renders the background translucent (alpha ≈ 0.75) while keeping the hue.    |
+| `dismissible`      | `boolean`                                 | `true`                          | If false, disables tap and swipe-to-dismiss.                                |
+| `scope`            | `string`                                  | `"default"`                     | Route the toast to a specific `<ToastProvider scope="..." />`.              |
+| `onShow`           | `() => void`                              | —                               | Fires after the enter animation completes.                                  |
+| `onPress`          | `() => void`                              | —                               | Fires on tap. Dismiss still happens if `dismissible` is true.               |
+| `onDismiss`        | `(reason) => void`                        | —                               | Fires after exit animation. `reason`: `"timeout" \| "user" \| "programmatic"`. |
+| `render`           | `(ctx) => ReactNode`                      | —                               | Custom renderer — replaces the built-in layout.                             |
+
+> 💡 `duration: 0` means **no auto-dismiss** — the toast stays until you call `toast.dismiss(id)`, tap it or swipe it. Used internally by `toast.promise(...)`.
 
 `ToastTextStyle` is a subset of `TextStyle`:
 
@@ -296,12 +415,28 @@ configureToasts({
   descriptionStyle: { fontFamily: "Inter" },
 
   backgroundColor: null, // set to override every variant
+
+  // "auto" (default) follows the system via useColorScheme.
+  // "light" / "dark" force a palette regardless of the OS.
+  colorScheme: "auto",
+
+  dismissible: true,        // tap + swipe enabled by default
+  swipeThreshold: 80,       // px of horizontal drag required to dismiss
+
+  // Direction the toast slides in from on enter.
+  // "top" | "bottom" | "left" | "right" (default) | "vertical"
+  // | "vertical-right" | "vertical-left"
+  entryDirection: "right",
 });
 ```
 
 ---
 
 ## 🎨 Built-in variant palette
+
+Ships with both a light and a dark palette. Switching between them is reactive — `useColorScheme()` is read at render time, so toggling the OS dark mode updates live toasts without extra work.
+
+**Light**
 
 | Variant   | Background | Title color | Icon color |
 | --------- | ---------- | ----------- | ---------- |
@@ -311,13 +446,82 @@ configureToasts({
 | `info`    | `#E0D6F8`  | `#2B1858`   | `#6D4AFF`  |
 | `warning` | `#FCEBB8`  | `#6B3F07`   | `#D97706`  |
 
-Need something different? Override `backgroundColor`, `titleStyle.color`, `descriptionStyle.color` or pass a custom `icon`.
+**Dark**
 
-You can also import the raw theme map:
+| Variant   | Background | Title color | Icon color |
+| --------- | ---------- | ----------- | ---------- |
+| `default` | `#1F2228`  | `#E5E7EB`   | —          |
+| `success` | `#14301F`  | `#B9F0B0`   | `#70D15C`  |
+| `error`   | `#3A1717`  | `#F5B0B0`   | `#FF4A47`  |
+| `info`    | `#221540`  | `#C7B6F5`   | `#8B6EFF`  |
+| `warning` | `#3A2A0E`  | `#F7D58E`   | `#F59E0B`  |
+
+Need something different? Override `backgroundColor`, `titleStyle.color`, `descriptionStyle.color` or pass a custom `icon`. You can also import the raw theme map:
 
 ```ts
 import { VARIANT_THEMES } from "expo-toastification";
+// VARIANT_THEMES.light.success, VARIANT_THEMES.dark.error, …
 ```
+
+---
+
+## 📱 Compatibility
+
+Zero native code of its own — every feature sits on top of React Native core APIs + the two peer deps you already have in any modern Expo app.
+
+### Platform support
+
+| Feature / API            | iOS  | Android | Web (react-native-web) |
+| ------------------------ | :--: | :-----: | :--------------------: |
+| Enter / exit animation   |  ✅  |   ✅    | ⚠️ (functional, not polished) |
+| Tap-to-dismiss           |  ✅  |   ✅    |           ✅           |
+| Swipe-to-dismiss         |  ✅  |   ✅    | ⚠️ (pointer edge cases) |
+| Stack reflow animation   |  ✅  |   ✅ *  |           —            |
+| Dark mode auto-switch    |  ✅  |   ✅    |           ✅           |
+| Safe-area insets         |  ✅  |   ✅    |           ✅           |
+| SVG icons                |  ✅  |   ✅    |           ✅           |
+| Screen-reader announce   |  ✅  |   ✅    |           —            |
+| `accessibilityRole=alert`|  ✅  |   ✅    |           —            |
+| `accessibilityLiveRegion`|  —   |   ✅    |           —            |
+
+<sub>*Android reflow is enabled for you automatically via `UIManager.setLayoutAnimationEnabledExperimental(true)` at module load — no setup required.</sub>
+
+### Build & runtime
+
+- ✅ **Expo Go** — no `prebuild` / `dev-client` needed.
+- ✅ **EAS Build** — no pods, no Gradle plugins, no `app.config` entries.
+- ✅ **New Architecture (Fabric / TurboModules)** — compatible (no native modules of our own).
+- ✅ **Hermes / JSC** — pure JS, both engines supported.
+- ⚠️ **Web** — functional but not polished (see roadmap).
+
+### What doesn't need setup
+
+- No changes to `Info.plist` or `AndroidManifest.xml`.
+- No extra babel plugins.
+- No `metro.config.js` tweaks.
+
+---
+
+## ♿ Accessibility
+
+Out of the box, every toast sets:
+
+- `accessibilityRole="alert"` for `error` / `warning`, default role for the rest.
+- `accessibilityLiveRegion="assertive"` for `error` / `warning`, `"polite"` for the rest (Android).
+- Manual `AccessibilityInfo.announceForAccessibility(...)` on mount when a screen reader is active (iOS fallback).
+- An auto-built `accessibilityLabel` combining variant + title + description. Override per toast via the `accessibilityLabel` option.
+
+---
+
+## 💡 Tips & gotchas
+
+- **`toast()` before `<ToastProvider />` mounts?** Calls made before the host mounts are queued and flush once the host subscribes. Safe to call from any top-level effect or service singleton.
+- **Nested `ScrollView` or `FlatList`?** The host sits in `pointerEvents="box-none"` absolute overlay — it doesn't block scroll. Swipe-to-dismiss only claims horizontal drags, so vertical scrolling beneath the toast keeps working.
+- **Hot reload / Fast Refresh** — queue and config are held in module-level singletons; reload wipes them naturally.
+- **`onPress` + `dismissible`** — the tap callback always fires first; the toast then dismisses **only if** `dismissible: true` (default). For a pure action toast without dismiss, pass `dismissible: false`.
+- **`duration: 0`** — disables auto-dismiss. Toast stays until you call `toast.dismiss(id)`, the user taps it, or swipes it.
+- **Multiple `<ToastProvider />`** — fine, but scope them. Toasts without an explicit scope go to `"default"`; only the provider with the matching scope renders them.
+- **Type-only imports** — full type surface is exported: `ToastOptions`, `ToastVariant`, `ToastPosition`, `ToastDismissReason`, `ToastEntryDirection`, `ToastColorScheme`, `ToastTextStyle`, `ToastPromiseMessages`, etc.
 
 ---
 
@@ -347,14 +551,9 @@ npx expo start -c
 
 ## 🛣 Roadmap
 
-- [ ] Swipe to dismiss (gesture handler + Reanimated)
-- [ ] Custom renderers (full `render(toast)` override)
-- [ ] Light / dark theming API
-- [ ] Toast groups / scopes
-- [ ] `toast.update(id, options)` and `toast.promise(...)`
-- [ ] Position-aware entry animation
-- [ ] Accessibility announcements (`announceForAccessibility`)
+- [ ] Per-scope `maxToasts` (today it's global)
 - [ ] Web support polish
+- [ ] Optional `react-native-reanimated` + `react-native-gesture-handler` backend for ultra-smooth swipe
 
 ---
 
