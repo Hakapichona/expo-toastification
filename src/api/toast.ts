@@ -1,3 +1,4 @@
+import { toastGlobalConfig } from "../core/configuration";
 import { toastManager, type ToastUpdatePayload } from "../core/toast-manager";
 import type { ToastOptions } from "../types";
 
@@ -113,6 +114,11 @@ export const toast: ToastApi = Object.assign(base, {
             duration: 0,
         });
 
+        // The loading toast is sticky (duration 0). Once settled it must
+        // auto-dismiss, so resolve a concrete duration instead of leaving it
+        // undefined (which `update` interprets as "keep the existing 0").
+        const settledDuration = options?.duration ?? toastGlobalConfig.duration;
+
         return promise.then(
             (value) => {
                 const resolved = resolveMessage(messages.success, value);
@@ -120,7 +126,7 @@ export const toast: ToastApi = Object.assign(base, {
                     title: resolved.title,
                     description: resolved.description ?? "",
                     variant: "success",
-                    duration: options?.duration,
+                    duration: settledDuration,
                 });
                 return value;
             },
@@ -130,7 +136,7 @@ export const toast: ToastApi = Object.assign(base, {
                     title: resolved.title,
                     description: resolved.description ?? "",
                     variant: "error",
-                    duration: options?.duration,
+                    duration: settledDuration,
                 });
                 throw err;
             }

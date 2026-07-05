@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] — 2026-07-05
+
+Stability pass: fixed dismiss/promise edge cases, hardened the queue, and
+polished accessibility and visuals. No breaking changes.
+
+### ✨ Added
+
+- **Per-toast `entryDirection`** — the slide-in direction can now be set per
+  toast via `ToastOptions`, not just globally. Falls back to the global config.
+- **`maxQueue`** — configurable cap (default `50`) on how many toasts may wait
+  in the queue beyond the visible ones. Toasts published past the limit are
+  dropped with a `console.warn` instead of growing the queue unbounded.
+- **Elevation / shadow** — toasts now render with a subtle drop shadow
+  (`elevation` on Android, `shadow*` on iOS).
+
+### 🔧 Fixed
+
+- **`toast.promise` never auto-dismissed.** The loading toast is sticky
+  (`duration: 0`); on settle it was updated with an `undefined` duration, which
+  meant "keep the existing `0`", so the success/error toast stayed on screen
+  forever. It now resolves to `options.duration ?? global default`.
+- **`onDismiss` was skipped for queued toasts.** Dismissing a toast that was
+  still in the queue (not yet mounted) detached it without firing `onDismiss`.
+  The callback now fires with the correct reason before detaching.
+- **Duplicate hosts sharing a scope.** Mounting more than one `ToastProvider` /
+  `ToastHost` with the same `scope` caused duplicated rendering and colliding
+  exit handlers. A dev-time `console.warn` now flags the situation.
+- **Double screen-reader announcement on Android.** The toast was announced
+  both by `accessibilityLiveRegion` and a manual `announceForAccessibility`.
+  The manual call is now iOS-only.
+- **`transparent` with unparseable colors** (e.g. named colors like `"red"`)
+  silently rendered opaque; it now emits a `console.warn`.
+- **Custom `render` did not handle tap.** The wrapper documented tap support but
+  never wired `onPress`; custom content is now wrapped so `onPress` and
+  tap-to-dismiss work as documented.
+
+### 🧹 Internal / performance
+
+- `detach` no longer double-notifies subscribers (removal + queue refill now
+  emit a single render).
+- `LayoutAnimation` no longer fires on the initial synchronous emission when a
+  host subscribes.
+- `InfoIcon` has its own "i" glyph instead of reusing the success checkmark.
+
+---
+
 ## [3.0.8] — Major revamp (since v1.1.0)
 
 ### ⚠️ Breaking
