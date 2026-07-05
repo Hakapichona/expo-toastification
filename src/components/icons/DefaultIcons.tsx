@@ -21,6 +21,8 @@ const ERROR_X_PATH =
 
 const WARNING_BANG_PATH = "M9 5H11V12H9V5ZM9 13.5H11V15.5H9V13.5Z";
 
+const INFO_I_PATH = "M9 4.5H11V6.5H9V4.5ZM9 8H11V15H9V8Z";
+
 export function SuccessIcon(props: DefaultIconProps): JSX.Element {
     const { color, size = DEFAULT_SIZE } = props;
     return (
@@ -42,7 +44,13 @@ export function ErrorIcon(props: DefaultIconProps): JSX.Element {
 }
 
 export function InfoIcon(props: DefaultIconProps): JSX.Element {
-    return <SuccessIcon {...props} />;
+    const { color, size = DEFAULT_SIZE } = props;
+    return (
+        <Svg width={size} height={size} viewBox="0 0 20 20">
+            <Path d={CIRCLE_RING_PATH} fill={color} />
+            <Path d={INFO_I_PATH} fill={color} />
+        </Svg>
+    );
 }
 
 export function WarningIcon(props: DefaultIconProps): JSX.Element {

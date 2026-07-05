@@ -4,6 +4,7 @@ import {
     AccessibilityInfo,
     Animated,
     PanResponder,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -13,6 +14,8 @@ import {
     type AccessibilityRole,
     type PanResponderInstance,
 } from "react-native";
+
+import { warn } from "../core/validation";
 
 import { toastGlobalConfig } from "../core/configuration";
 import { toastManager } from "../core/toast-manager";
@@ -61,6 +64,10 @@ function withAlpha(color: string, alpha: number): string {
         return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${a})`;
     }
 
+    warn(
+        `transparent is enabled but backgroundColor "${trimmed}" could not be parsed; ` +
+            `use a hex or rgb()/rgba() value. Rendering it fully opaque.`
+    );
     return trimmed;
 }
 
@@ -134,11 +141,11 @@ function ToastItemImpl(props: ToastItemProps): JSX.Element {
     const initialOffset = useMemo(
         () =>
             computeEntryOffset(
-                toastGlobalConfig.entryDirection,
+                options.entryDirection,
                 options.position,
                 windowWidth
             ),
-        [options.position, windowWidth]
+        [options.entryDirection, options.position, windowWidth]
     );
 
     const translateX = useRef(new Animated.Value(initialOffset.x)).current;
@@ -334,6 +341,11 @@ function ToastItemImpl(props: ToastItemProps): JSX.Element {
     );
 
     useEffect(() => {
+        // On Android `accessibilityLiveRegion` already announces the toast, so
+        // announcing manually would read it twice. iOS has no live region, so
+        // we announce explicitly there.
+        if (Platform.OS === "android") return;
+
         let cancelled = false;
         AccessibilityInfo.isScreenReaderEnabled()
             .then((enabled) => {
@@ -377,10 +389,12 @@ function ToastItemImpl(props: ToastItemProps): JSX.Element {
                 style={[styles.customWrapper, animatedStyle]}
                 {...(panResponder.current?.panHandlers ?? {})}
             >
-                {options.render({
-                    toast,
-                    dismiss: () => toastManager.dismiss(toast.id, "user"),
-                })}
+                <Pressable onPress={handlePress}>
+                    {options.render({
+                        toast,
+                        dismiss: () => toastManager.dismiss(toast.id, "user"),
+                    })}
+                </Pressable>
             </Animated.View>
         );
     }
@@ -434,7 +448,11 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         minWidth: "80%",
         maxWidth: 480,
-        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
     },
     customWrapper: {
         marginBottom: 8,

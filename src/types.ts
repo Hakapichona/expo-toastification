@@ -47,6 +47,12 @@ export interface ToastOptions {
     duration?: number;
     position?: ToastPosition;
 
+    /**
+     * Direction the toast slides in from on enter. Overrides the global
+     * `entryDirection` for this toast only. Defaults to the global config.
+     */
+    entryDirection?: ToastEntryDirection;
+
     /** Optional secondary line rendered under the title. */
     description?: string;
 
@@ -116,6 +122,7 @@ export interface ToastResolvedOptions {
     readonly variant: ToastVariant;
     readonly duration: number;
     readonly position: ToastPosition;
+    readonly entryDirection: ToastEntryDirection;
 
     readonly description: string | null;
     readonly icon: ReactNode | null;

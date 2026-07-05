@@ -31,10 +31,23 @@ export function ToastHost(props: ToastHostProps): JSX.Element {
     const [toasts, setToasts] = useState<ReadonlyArray<ToastInternal>>([]);
 
     useEffect(() => {
-        return toastManager.subscribe((next) => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        const unregisterHost = toastManager.registerHost(scope);
+        // The first emission fires synchronously on subscribe with the current
+        // state; don't animate that initial paint.
+        let isFirstEmission = true;
+        const unsubscribe = toastManager.subscribe((next) => {
+            if (!isFirstEmission) {
+                LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut
+                );
+            }
+            isFirstEmission = false;
             setToasts(next.filter((t) => t.options.scope === scope));
         });
+        return () => {
+            unsubscribe();
+            unregisterHost();
+        };
     }, [scope]);
 
     const topToasts = useMemo(

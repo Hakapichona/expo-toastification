@@ -6,6 +6,11 @@ import type { ToastColorScheme, ToastEntryDirection } from "../types";
 export interface ToastUserConfig extends Partial<ToastGlobalConfig> {
     /** Max number of toasts that can be displayed simultaneously. */
     maxToasts?: number;
+    /**
+     * Max number of toasts that can wait in the queue beyond the visible ones.
+     * Toasts published past this limit are dropped with a warning. Defaults to 50.
+     */
+    maxQueue?: number;
 }
 
 const NUMERIC_FIELDS = [
@@ -38,7 +43,7 @@ function isNumericField(
 }
 
 export function configureToasts(config: ToastUserConfig): void {
-    const { maxToasts, ...visual } = config;
+    const { maxToasts, maxQueue, ...visual } = config;
 
     const defined: Partial<ToastGlobalConfig> = {};
 
@@ -96,7 +101,7 @@ export function configureToasts(config: ToastUserConfig): void {
 
     Object.assign(toastGlobalConfig, defined);
 
-    if (maxToasts !== undefined) {
-        toastManager.configure({ maxToasts });
+    if (maxToasts !== undefined || maxQueue !== undefined) {
+        toastManager.configure({ maxToasts, maxQueue });
     }
 }

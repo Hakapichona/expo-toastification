@@ -47,6 +47,8 @@ export function normalizeOptions(
     return {
         variant,
         position: options?.position ?? toastGlobalConfig.position,
+        entryDirection:
+            options?.entryDirection ?? toastGlobalConfig.entryDirection,
 
         duration: resolveNonNegativeNumber(
             options?.duration,
@@ -107,6 +109,7 @@ export function applyResolvedUpdates(
     return {
         variant: updates.variant ?? existing.variant,
         position: updates.position ?? existing.position,
+        entryDirection: updates.entryDirection ?? existing.entryDirection,
 
         duration:
             updates.duration !== undefined

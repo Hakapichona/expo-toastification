@@ -13,11 +13,13 @@ export interface ToastUpdatePayload extends ToastOptions {
 class ToastManager {
     private readonly subscribers: Set<Subscriber> = new Set();
     private readonly exitHandlers: Map<string, ExitHandler> = new Map();
+    private readonly hostScopes: Map<string, number> = new Map();
 
     private queue: ToastInternal[] = [];
     private active: ToastInternal[] = [];
 
     private maxToasts: number = 3;
+    private maxQueue: number = 50;
 
     subscribe(fn: Subscriber): () => void {
         this.subscribers.add(fn);
@@ -39,6 +41,14 @@ class ToastManager {
             options: normalizeOptions(options),
         };
 
+        if (this.active.length + this.queue.length >= this.maxToasts + this.maxQueue) {
+            warn(
+                `Toast queue is full (maxQueue = ${this.maxQueue}); dropping "${toast.title}". ` +
+                    `Toasts may be published faster than they are dismissed.`
+            );
+            return "";
+        }
+
         this.queue.push(toast);
         this.flush();
 
@@ -49,9 +59,42 @@ class ToastManager {
         const handler = this.exitHandlers.get(id);
         if (handler) {
             handler(reason);
-        } else {
-            this.detach(id);
+            return;
         }
+
+        // No mounted item (e.g. the toast is still queued). Fire onDismiss
+        // ourselves before detaching, since there is no exit animation to do it.
+        const toast =
+            this.queue.find((t) => t.id === id) ??
+            this.active.find((t) => t.id === id);
+        toast?.options.onDismiss?.(reason);
+        this.detach(id);
+    }
+
+    /**
+     * Track a mounted host so we can warn about duplicate providers sharing a
+     * scope, which causes duplicated rendering and exit-handler collisions.
+     */
+    registerHost(scope: string): () => void {
+        const count = (this.hostScopes.get(scope) ?? 0) + 1;
+        this.hostScopes.set(scope, count);
+
+        if (count > 1) {
+            warn(
+                `Multiple ToastProvider/ToastHost instances are mounted for scope "${scope}". ` +
+                    `Toasts will render duplicated and dismiss handlers may collide. ` +
+                    `Mount a single provider per scope.`
+            );
+        }
+
+        return () => {
+            const next = (this.hostScopes.get(scope) ?? 1) - 1;
+            if (next <= 0) {
+                this.hostScopes.delete(scope);
+            } else {
+                this.hostScopes.set(scope, next);
+            }
+        };
     }
 
     registerExit(id: string, handler: ExitHandler): () => void {
@@ -65,7 +108,9 @@ class ToastManager {
         this.active = this.active.filter((t) => t.id !== id);
         this.queue = this.queue.filter((t) => t.id !== id);
         this.exitHandlers.delete(id);
-        this.flush();
+        // Refill from the queue before notifying so the removal and any
+        // promotion are reflected in a single render.
+        this.fill();
         this.notify();
     }
 
@@ -103,27 +148,40 @@ class ToastManager {
         return false;
     }
 
-    configure(config: { maxToasts?: number }): void {
+    configure(config: { maxToasts?: number; maxQueue?: number }): void {
         if (config.maxToasts !== undefined) {
             this.maxToasts = resolvePositiveNumber(
                 config.maxToasts,
                 this.maxToasts,
                 "maxToasts"
             );
-            this.flush();
         }
+
+        if (config.maxQueue !== undefined) {
+            this.maxQueue = resolvePositiveNumber(
+                config.maxQueue,
+                this.maxQueue,
+                "maxQueue"
+            );
+        }
+
+        this.flush();
+    }
+
+    /** Promote queued toasts into the active set. Returns true if it changed. */
+    private fill(): boolean {
+        const availableSlots: number = this.maxToasts - this.active.length;
+
+        if (availableSlots <= 0) return false;
+        if (this.queue.length === 0) return false;
+
+        const next: ToastInternal[] = this.queue.splice(0, availableSlots);
+        this.active = [...this.active, ...next];
+        return true;
     }
 
     private flush(): void {
-        const availableSlots: number = this.maxToasts - this.active.length;
-
-        if (availableSlots <= 0) return;
-        if (this.queue.length === 0) return;
-
-        const next: ToastInternal[] = this.queue.splice(0, availableSlots);
-
-        this.active = [...this.active, ...next];
-        this.notify();
+        if (this.fill()) this.notify();
     }
 
     private notify(): void {
